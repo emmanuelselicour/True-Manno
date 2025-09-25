@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Order Management</title>
+    <style>
+        /* (stil menm jan ak orijinal la, ti ajisteman pou dropdown lang) */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background-color: #f0f2f5; min-height: 100vh; display: flex; flex-direction: column; }
+        header { background-color: #2c3e50; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); gap: 10px; }
+        .left-header { display:flex; align-items:center; gap:12px; }
+        .pseudo-display { font-size: 1.1rem; font-weight: bold; }
+        .lang-select { background:#34495e; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+        .buttons-container { display:flex; gap:10px; }
+        .buttons-container.hidden { display:none; }
+        button { padding:8px 12px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; transition:background-color 0.3s; }
+        .param-btn { background-color:#3498db; color:white; }
+        .param-btn:hover { background-color:#2980b9; }
+        .order-btn { background-color:#e74c3c; color:white; }
+        .order-btn:hover { background-color:#c0392b; }
+        main { flex:1; padding:2rem; max-width:900px; margin:0 auto; width:100%; }
+        .login-section, .number-input-section, .orders-section { background:white; padding:1.5rem; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1); margin-bottom:1.5rem; }
+        h2 { margin-bottom:1rem; color:#2c3e50; }
+        .input-group { position:relative; margin-bottom:1rem; }
+        input { width:100%; padding:10px; border:2px solid #ddd; border-radius:5px; font-size:1rem; padding-right:40px; }
+        .password-toggle { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#7f8c8d; font-size:1.2rem; }
+        .submit-btn { background-color:#27ae60; color:white; width:100%; padding:12px; font-size:1.1rem; }
+        .submit-btn:hover { background-color:#219a52; }
+        .search-section { display:flex; gap:10px; margin-bottom:1rem; }
+        .search-input { flex:1; padding:10px; border:2px solid #ddd; border-radius:5px; font-size:1rem; }
+        .search-btn { background-color:#3498db; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; }
+        .filter-buttons { display:flex; gap:10px; margin-bottom:1rem; flex-wrap:wrap; }
+        .filter-btn { background-color:#95a5a6; color:white; padding:8px 15px; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem; }
+        .filter-btn.active { background-color:#3498db; }
+        .order-item { display:flex; justify-content:space-between; align-items:center; padding:1rem; border-bottom:1px solid #eee; background-color:#f8f9fa; margin-bottom:0.5rem; border-radius:5px; transition:all 0.3s ease; }
+        .order-item.highlight { background-color:#fff3cd; border-left:4px solid #ffc107; }
+        .order-info { display:flex; align-items:center; gap:10px; }
+        .order-number { font-weight:bold; color:#2c3e50; font-size:1.1rem; }
+        .delete-btn { background-color:#e74c3c; color:white; padding:5px 10px; font-size:0.9rem; }
+        .delete-all-btn { background-color:#e74c3c; color:white; width:100%; padding:12px; margin-top:1rem; }
+        .search-results { color:#7f8c8d; font-size:0.9rem; margin-bottom:1rem; text-align:center; }
+        .no-results { text-align:center; color:#7f8c8d; padding:2rem; font-style:italic; }
+        footer { background-color:#2c3e50; color:white; text-align:center; padding:1rem; margin-top:auto; }
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000; }
+        .modal-content { background:white; padding:2rem; border-radius:10px; text-align:center; max-width:400px; width:90%; }
+        .modal-buttons { display:flex; gap:10px; justify-content:center; margin-top:1rem; }
+        .confirm-btn { background-color:#e74c3c; color:white; }
+        .cancel-btn { background-color:#7f8c8d; color:white; }
+        .hidden { display:none; }
+        .error-message { color:#e74c3c; font-size:0.9rem; margin-top:-0.5rem; margin-bottom:1rem; display:none; }
+        .access-denied { text-align:center; color:#7f8c8d; padding:2rem; }
+        .custom-alert { position:fixed; top:20px; right:20px; background:white; padding:1rem; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.3); border-left:4px solid #e74c3c; max-width:300px; z-index:1001; transform:translateX(400px); transition:transform 0.3s ease; }
+        .custom-alert.show { transform:translateX(0); }
+        .custom-alert.success { border-left-color:#27ae60; }
+        .custom-alert.warning { border-left-color:#f39c12; }
+        .custom-alert.info { border-left-color:#3498db; }
+        .alert-title { font-weight:bold; margin-bottom:0.5rem; color:#2c3e50; }
+        .alert-message { color:#34495e; margin-bottom:1rem; }
+        .alert-close { background:#95a5a6; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; float:right; }
+        .custom-confirm { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:2rem; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:1002; max-width:400px; width:90%; text-align:center; }
+        .confirm-buttons { display:flex; gap:10px; justify-content:center; margin-top:1.5rem; }
+        .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; }
+        .password-note { font-size:0.8rem; color:#7f8c8d; margin-bottom:1rem; text-align:center; }
+        select.lang-select { appearance:none; -webkit-appearance:none; -moz-appearance:none; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="left-header">
+            <div class="pseudo-display" id="pseudoDisplay">True-Manno</div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+            <select id="languageSelect" class="lang-select" onchange="changeLanguage(this.value)">
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="ht">Kreyòl</option>
+                <option value="zh">中文</option>
+            </select>
+
+            <div class="buttons-container hidden" id="headerButtons">
+                <button class="param-btn" id="btnSettings" onclick="openSettings()">Settings</button>
+                <button class="order-btn" id="btnViewOrders" onclick="showOrderSection()">View Orders</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Login section -->
+        <section class="login-section" id="loginSection">
+            <h2 data-i18n="login_title">Sign in</h2>
+            <div class="input-group">
+                <input type="text" id="usernameInput" placeholder="Enter your name" required data-i18n-placeholder="username_placeholder">
+            </div>
+            <div class="input-group">
+                <input type="password" id="passwordInput" placeholder="Enter password" required data-i18n-placeholder="password_placeholder">
+                <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
+            </div>
+            <!-- removed visible password note per request -->
+            <div class="error-message" id="loginError"></div>
+            <button class="submit-btn" onclick="login()" id="loginBtn" data-i18n="login_button">Login</button>
+        </section>
+
+        <!-- Number input section -->
+        <section class="number-input-section hidden" id="numberSection">
+            <h2 data-i18n="add_order_title">Add an order</h2>
+            <input type="number" id="numberInput" placeholder="Enter a number (3-4 digits)" required data-i18n-placeholder="number_placeholder">
+            <div class="error-message" id="numberError"></div>
+            <button class="submit-btn" onclick="addOrder()" id="addOrderBtn" data-i18n="add_button">Add Order</button>
+        </section>
+
+        <!-- Orders section -->
+        <section class="orders-section hidden" id="ordersSection">
+            <h2 data-i18n="orders_list_title">Your Orders List</h2>
+
+            <div class="search-section">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search an order..." data-i18n-placeholder="search_placeholder">
+                <button class="search-btn" onclick="searchOrders()" id="searchBtn">🔍 <span data-i18n="search_button">Search</span></button>
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterOrders('all')"><span data-i18n="filter_all">All Orders</span></button>
+                <button class="filter-btn" onclick="filterOrders('3digits')"><span data-i18n="filter_3">3 Digits</span></button>
+                <button class="filter-btn" onclick="filterOrders('4digits')"><span data-i18n="filter_4">4 Digits</span></button>
+                <button class="filter-btn" onclick="filterOrders('even')"><span data-i18n="filter_even">Even</span></button>
+                <button class="filter-btn" onclick="filterOrders('odd')"><span data-i18n="filter_odd">Odd</span></button>
+            </div>
+
+            <div class="search-results" id="searchResults"></div>
+
+            <div id="ordersList" class="access-denied">
+                <span data-i18n="must_login">You must login to see orders.</span>
+            </div>
+
+            <button class="delete-all-btn hidden" id="deleteAllBtn" onclick="confirmDeleteAll()" data-i18n="delete_all">Delete All Orders</button>
+        </section>
+
+        <!-- Settings modal (rename pseudo) -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <h3 data-i18n="settings_title">Change Display Name</h3>
+                <input type="text" id="newPseudoInput" placeholder="New display name" data-i18n-placeholder="new_pseudo_placeholder">
+                <div class="modal-buttons">
+                    <button class="confirm-btn" onclick="changePseudo()" data-i18n="confirm">Confirm</button>
+                    <button class="cancel-btn" onclick="closeSettings()" data-i18n="cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete confirm modal -->
+        <div class="modal" id="deleteModal">
+            <div class="modal-content">
+                <h3 data-i18n="confirm_delete_title">Confirm Deletion</h3>
+                <p data-i18n="confirm_delete_text">Are you sure you want to delete this order?</p>
+                <div class="modal-buttons">
+                    <button class="confirm-btn" onclick="confirmDelete()" data-i18n="yes_delete">Yes, Delete</button>
+                    <button class="cancel-btn" onclick="cancelDelete()" data-i18n="no_cancel">No, Cancel</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <span data-i18n="footer_text">Program developed by True-Manno</span>
+    </footer>
+
+    <script>
+    /***********************
+     * Localization strings
+     ***********************/
+    const i18n = {
+        en: {
+            login_title: "Sign in",
+            username_placeholder: "Enter your name",
+            password_placeholder: "Enter password",
+            login_button: "Login",
+            add_order_title: "Add an order",
+            number_placeholder: "Enter a number (3-4 digits)",
+            add_button: "Add Order",
+            orders_list_title: "Your Orders List",
+            search_placeholder: "Search an order...",
+            search_button: "Search",
+            filter_all: "All Orders",
+            filter_3: "3 Digits",
+            filter_4: "4 Digits",
+            filter_even: "Even",
+            filter_odd: "Odd",
+            must_login: "You must login to see orders.",
+            delete_all: "Delete All Orders",
+            settings_title: "Change Display Name",
+            new_pseudo_placeholder: "New display name",
+            confirm: "Confirm",
+            cancel: "Cancel",
+            confirm_delete_title: "Confirm Deletion",
+            confirm_delete_text: "Are you sure you want to delete this order?",
+            yes_delete: "Yes, Delete",
+            no_cancel: "No, Cancel",
+            footer_text: "Program developed by True-Manno",
+            alerts: {
+                login_success: "Login successful!",
+                welcome: "Welcome",
+                wrong_pass: "Password is incorrect!",
+                enter_username: "Please enter your name!",
+                order_added: "Order added!",
+                order_deleted: "Order deleted",
+                no_orders: "No orders to show!"
+            }
+        },
+        fr: {
+            login_title: "Connexion",
+            username_placeholder: "Entrez votre nom",
+            password_placeholder: "Entrez le mot de passe",
+            login_button: "Se connecter",
+            add_order_title: "Ajouter une commande",
+            number_placeholder: "Entrez un numéro (3-4 chiffres)",
+            add_button: "Ajouter",
+            orders_list_title: "Liste de vos commandes",
+            search_placeholder: "Rechercher une commande...",
+            search_button: "Rechercher",
+            filter_all: "Toutes",
+            filter_3: "3 chiffres",
+            filter_4: "4 chiffres",
+            filter_even: "Pairs",
+            filter_odd: "Impairs",
+            must_login: "Vous devez vous connecter pour voir les commandes.",
+            delete_all: "Supprimer toutes les commandes",
+            settings_title: "Changer le nom affiché",
+            new_pseudo_placeholder: "Nouveau nom affiché",
+            confirm: "Confirmer",
+            cancel: "Annuler",
+            confirm_delete_title: "Confirmer la suppression",
+            confirm_delete_text: "Voulez-vous vraiment supprimer cette commande ?",
+            yes_delete: "Oui, supprimer",
+            no_cancel: "Non, annuler",
+            footer_text: "Programme développé par True-Manno",
+            alerts: {
+                login_success: "Connexion réussie !",
+                welcome: "Bienvenue",
+                wrong_pass: "Mot de passe incorrect !",
+                enter_username: "Veuillez entrer votre nom !",
+                order_added: "Commande ajoutée !",
+                order_deleted: "Commande supprimée",
+                no_orders: "Aucune commande à afficher !"
+            }
+        },
+        es: {
+            login_title: "Iniciar sesión",
+            username_placeholder: "Ingrese su nombre",
+            password_placeholder: "Ingrese la contraseña",
+            login_button: "Entrar",
+            add_order_title: "Agregar un pedido",
+            number_placeholder: "Ingrese un número (3-4 dígitos)",
+            add_button: "Agregar pedido",
+            orders_list_title: "Lista de tus pedidos",
+            search_placeholder: "Buscar un pedido...",
+            search_button: "Buscar",
+            filter_all: "Todos",
+            filter_3: "3 dígitos",
+            filter_4: "4 dígitos",
+            filter_even: "Pares",
+            filter_odd: "Impares",
+            must_login: "Debes iniciar sesión para ver los pedidos.",
+            delete_all: "Eliminar todos los pedidos",
+            settings_title: "Cambiar nombre visible",
+            new_pseudo_placeholder: "Nuevo nombre visible",
+            confirm: "Confirmar",
+            cancel: "Cancelar",
+            confirm_delete_title: "Confirmar eliminación",
+            confirm_delete_text: "¿Seguro que quieres eliminar este pedido?",
+            yes_delete: "Sí, eliminar",
+            no_cancel: "No, cancelar",
+            footer_text: "Programa desarrollado por True-Manno",
+            alerts: {
+                login_success: "¡Inicio de sesión exitoso!",
+                welcome: "Bienvenido",
+                wrong_pass: "¡Contraseña incorrecta!",
+                enter_username: "¡Por favor ingrese su nombre!",
+                order_added: "¡Pedido agregado!",
+                order_deleted: "Pedido eliminado",
+                no_orders: "¡No hay pedidos para mostrar!"
+            }
+        },
+        ht: {
+            login_title: "Antre nan sistèm nan",
+            username_placeholder: "Antre non ou",
+            password_placeholder: "Antre modpas la",
+            login_button: "Konekte",
+            add_order_title: "Antre yon nimewo",
+            number_placeholder: "Antre yon nimewo (3-4 chif)",
+            add_button: "Ajoute Order",
+            orders_list_title: "Lis Orders Ou Yo",
+            search_placeholder: "Chache yon order...",
+            search_button: "Chache",
+            filter_all: "Tout Orders",
+            filter_3: "3 Chif",
+            filter_4: "4 Chif",
+            filter_even: "Nimewo Pè",
+            filter_odd: "Nimewo Enpè",
+            must_login: "Ou dwe konekte pou w ka wè orders yo.",
+            delete_all: "Siprime Tout Orders Yo",
+            settings_title: "Chanje Pseudo",
+            new_pseudo_placeholder: "Nouvo pseudo",
+            confirm: "Konfime",
+            cancel: "Anile",
+            confirm_delete_title: "Konfime Sipresyon",
+            confirm_delete_text: "Èske w vle siprime order sa a vre?",
+            yes_delete: "Wi, Siprime",
+            no_cancel: "Non, Anile",
+            footer_text: "Programe developped by True-Manno",
+            alerts: {
+                login_success: "Koneksyon reyisi!",
+                welcome: "Byenveni",
+                wrong_pass: "Modpas la pa kòrèk!",
+                enter_username: "Tanpri antre non ou!",
+                order_added: "Order ajoute!",
+                order_deleted: "Order siprime",
+                no_orders: "Pa gen orders pou montre!"
+            }
+        },
+        zh: {
+            login_title: "登录",
+            username_placeholder: "输入您的姓名",
+            password_placeholder: "输入密码",
+            login_button: "登录",
+            add_order_title: "添加订单",
+            number_placeholder: "输入数字 (3-4 位)",
+            add_button: "添加订单",
+            orders_list_title: "您的订单列表",
+            search_placeholder: "搜索订单...",
+            search_button: "搜索",
+            filter_all: "所有订单",
+            filter_3: "3 位数",
+            filter_4: "4 位数",
+            filter_even: "偶数",
+            filter_odd: "奇数",
+            must_login: "您必须登录才能查看订单。",
+            delete_all: "删除所有订单",
+            settings_title: "修改显示名称",
+            new_pseudo_placeholder: "新的显示名称",
+            confirm: "确定",
+            cancel: "取消",
+            confirm_delete_title: "确认删除",
+            confirm_delete_text: "确定要删除此订单吗？",
+            yes_delete: "是，删除",
+            no_cancel: "否，取消",
+            footer_text: "程序由 True-Manno 开发",
+            alerts: {
+                login_success: "登录成功！",
+                welcome: "欢迎",
+                wrong_pass: "密码不正确！",
+                enter_username: "请输入您的姓名！",
+                order_added: "订单已添加！",
+                order_deleted: "订单已删除",
+                no_orders: "没有订单可显示！"
+            }
+        }
+    };
+
+    /***********************
+     * Application state
+     ***********************/
+    // We store orders in cookie named 'orders' (JSON)
+    let orders = [];
+    let currentUser = "";
+    let orderToDelete = null;
+    let isLoggedIn = false;
+    let currentFilter = 'all';
+    let currentSearch = '';
+    let currentLang = 'en';
+
+    // Password: NOT shown in UI. We store base64 encoded password so it's not plainly visible on page.
+    // Source password: everyday27
+    const ENCODED_PASS = "ZXZlcnlkYXkyNw=="; // base64 for "everyday27"
+    function getRealPassword() { try { return atob(ENCODED_PASS); } catch (e) { return "everyday27"; } }
+
+    /***********************
+     * Initialization
+     ***********************/
+    window.onload = function() {
+        // Load language from localStorage if any
+        const savedLang = localStorage.getItem('site_language');
+        if (savedLang && i18n[savedLang]) currentLang = savedLang;
+        document.getElementById('languageSelect').value = currentLang;
+
+        // Load orders (if any)
+        const savedOrders = getCookie('orders');
+        if (savedOrders) {
+            try { orders = JSON.parse(savedOrders); } catch (e) { orders = []; }
+        }
+
+        // If we saved username earlier, fill the input but DO NOT auto-login
+        const savedUser = getCookie('username');
+        if (savedUser) {
+            document.getElementById('usernameInput').value = savedUser;
+            // show saved pseudo in header but user still needs to login each refresh
+            document.getElementById('pseudoDisplay').textContent = savedUser;
+        }
+
+        // Ensure logged out on load (require password each refresh)
+        isLoggedIn = false;
+        updateUI();
+
+        setupEventListeners();
+        translatePage();
+    };
+
+    function setupEventListeners() {
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('numberInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addOrder();
+        });
+        document.getElementById('newPseudoInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') changePseudo();
+        });
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            currentSearch = e.target.value;
+            displayOrders();
+        });
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchOrders();
+        });
+    }
+
+    /***********************
+     * Localization helpers
+     ***********************/
+    function translatePage() {
+        const dict = i18n[currentLang] || i18n['en'];
+        // translate elements with data-i18n (text content)
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict[key]) el.textContent = dict[key];
+        });
+        // translate placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (dict[key]) el.placeholder = dict[key];
+        });
+
+        // some dynamic texts
+        if (!isLoggedIn) {
+            document.getElementById('ordersList').innerHTML = `<span>${dict.must_login}</span>`;
+        }
+        // update search button text inside
+        const searchBtnSpan = document.querySelector('#searchBtn span[data-i18n]');
+        if (searchBtnSpan && dict.search_button) searchBtnSpan.textContent = dict.search_button;
+
+        // update header pseudo text
+        document.getElementById('pseudoDisplay').textContent = isLoggedIn ? currentUser : (getCookie('username') || 'True-Manno');
+
+        // translate footer
+        document.querySelector('[data-i18n="footer_text"]').textContent = dict.footer_text;
+    }
+
+    function changeLanguage(lang) {
+        if (i18n[lang]) {
+            currentLang = lang;
+            localStorage.setItem('site_language', lang);
+            translatePage();
+        }
+    }
+
+    /***********************
+     * UI & Auth
+     ***********************/
+    function updateUI() {
+        const headerButtons = document.getElementById('headerButtons');
+        const pseudoDisplay = document.getElementById('pseudoDisplay');
+
+        pseudoDisplay.textContent = isLoggedIn ? currentUser : (getCookie('username') || "True-Manno");
+
+        if (isLoggedIn) {
+            headerButtons.classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('numberSection').classList.remove('hidden');
+            document.getElementById('ordersSection').classList.remove('hidden');
+            displayOrders();
+        } else {
+            headerButtons.classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('numberSection').classList.add('hidden');
+            document.getElementById('ordersSection').classList.add('hidden');
+        }
+
+        translatePage();
+    }
+
+    function login() {
+        const username = document.getElementById('usernameInput').value.trim();
+        const password = document.getElementById('passwordInput').value;
+        const errorElement = document.getElementById('loginError');
+
+        // reset
+        errorElement.style.display = 'none';
+
+        const dict = i18n[currentLang];
+
+        if (!username) {
+            showError(errorElement, dict.alerts.enter_username);
+            return;
+        }
+
+        if (password !== getRealPassword()) {
+            showError(errorElement, dict.alerts.wrong_pass);
+            return;
+        }
+
+        // login success: note we store username but we DO NOT store any persistent "logged in" flag:
+        currentUser = username;
+        isLoggedIn = true;
+        setCookie('username', username, 30); // store username so next refresh prefills it (but still require password)
+        // clear password input
+        document.getElementById('passwordInput').value = '';
+        document.querySelector('.password-toggle').textContent = '👁️';
+        showAlert(dict.alerts.login_success, `${dict.alerts.welcome} ${username}!`, "success");
+        updateUI();
+    }
+
+    function togglePassword() {
+        const passwordInput = document.getElementById('passwordInput');
+        const toggleButton = document.querySelector('.password-toggle');
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleButton.textContent = '🔒';
+        } else {
+            passwordInput.type = 'password';
+            toggleButton.textContent = '👁️';
+        }
+    }
+
+    /***********************
+     * Orders management
+     ***********************/
+    function addOrder() {
+        if (!isLoggedIn) {
+            showAlert(i18n[currentLang].alerts.login_success /*placeholder title*/, i18n[currentLang].must_login, "warning");
+            return;
+        }
+
+        const numberInput = document.getElementById('numberInput');
+        const number = (numberInput.value || '').trim();
+        const errorElement = document.getElementById('numberError');
+        errorElement.style.display = 'none';
+
+        const dict = i18n[currentLang];
+
+        if (!number) {
+            showError(errorElement, dict.number_placeholder);
+            return;
+        }
+
+        if (number.length < 3 || number.length > 4) {
+            showError(errorElement, dict.number_placeholder);
+            return;
+        }
+
+        if (isNaN(number) || Number(number) < 100) {
+            showError(errorElement, dict.number_placeholder);
+            return;
+        }
+
+        orders.push(number);
+        setCookie('orders', JSON.stringify(orders), 365); // keep orders for long (you can change)
+        numberInput.value = '';
+        displayOrders();
+        showAlert(dict.alerts.order_added, `#${number}`, "success");
+    }
+
+    function searchOrders() {
+        currentSearch = document.getElementById('searchInput').value.trim();
+        displayOrders();
+    }
+
+    function filterOrders(filterType) {
+        currentFilter = filterType;
+
+        // adjust active class on buttons (simple approach)
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        // find a button that matches label; simpler: set the clicked one active via event target — but we didn't pass event, so do this:
+        // find based on button index mapping
+        const map = { all:0, '3digits':1, '4digits':2, even:3, odd:4 };
+        const idx = map[filterType] ?? 0;
+        const btns = document.querySelectorAll('.filter-btn');
+        if (btns[idx]) btns[idx].classList.add('active');
+
+        displayOrders();
+    }
+
+    function displayOrders() {
+        const ordersList = document.getElementById('ordersList');
+        const deleteAllBtn = document.getElementById('deleteAllBtn');
+        const searchResults = document.getElementById('searchResults');
+        const dict = i18n[currentLang];
+
+        if (!isLoggedIn) {
+            ordersList.innerHTML = `<div class="access-denied">${dict.must_login}</div>`;
+            deleteAllBtn.classList.add('hidden');
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        let filteredOrders = [...orders];
+
+        // apply search
+        if (currentSearch) {
+            filteredOrders = filteredOrders.filter(order => order.includes(currentSearch));
+        }
+
+        // apply filters
+        switch (currentFilter) {
+            case '3digits': filteredOrders = filteredOrders.filter(o => o.length === 3); break;
+            case '4digits': filteredOrders = filteredOrders.filter(o => o.length === 4); break;
+            case 'even': filteredOrders = filteredOrders.filter(o => parseInt(o) % 2 === 0); break;
+            case 'odd': filteredOrders = filteredOrders.filter(o => parseInt(o) % 2 !== 0); break;
+            case 'all':
+            default: break;
+        }
+
+        ordersList.innerHTML = '';
+
+        // search text
+        if (currentSearch) {
+            if (filteredOrders.length === 0) {
+                searchResults.innerHTML = `${dict.search_placeholder ? '' : ''} ${currentSearch} — 0`;
+                searchResults.innerHTML = `Found ${filteredOrders.length} order(s) for "${currentSearch}"`;
+            } else {
+                searchResults.innerHTML = `Found ${filteredOrders.length} order(s) for "${currentSearch}"`;
+            }
+        } else {
+            searchResults.innerHTML = '';
+        }
+
+        if (filteredOrders.length === 0) {
+            if (orders.length === 0) {
+                ordersList.innerHTML = `<p>${dict.alerts.no_orders}</p>`;
+            } else {
+                ordersList.innerHTML = `<div class="no-results">${dict.alerts.no_orders}</div>`;
+            }
+            deleteAllBtn.classList.add('hidden');
+            return;
+        }
+
+        filteredOrders.forEach((order, idx) => {
+            const originalIndex = orders.indexOf(order);
+            const orderElement = document.createElement('div');
+            orderElement.className = 'order-item';
+            if (currentSearch && order.includes(currentSearch)) orderElement.classList.add('highlight');
+
+            orderElement.innerHTML = `
+                <div class="order-info">
+                    <span class="order-number">${order}</span>
+                </div>
+                <button class="delete-btn" onclick="confirmDeleteOrder(${originalIndex})">${i18n[currentLang].yes_delete === undefined ? 'Delete' : i18n[currentLang].yes_delete}</button>
+            `;
+            ordersList.appendChild(orderElement);
+        });
+
+        deleteAllBtn.classList.remove('hidden');
+    }
+
+    function showOrderSection() {
+        if (!isLoggedIn) {
+            showAlert("Access denied", i18n[currentLang].must_login, "warning");
+            return;
+        }
+
+        if (orders.length > 0) {
+            document.getElementById('ordersSection').classList.remove('hidden');
+            currentSearch = '';
+            currentFilter = 'all';
+            document.getElementById('searchInput').value = '';
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.filter-btn').classList.add('active');
+            displayOrders();
+            showAlert("Orders open", "You can see your orders here.", "info");
+        } else {
+            showAlert("No orders", i18n[currentLang].alerts.no_orders, "info");
+        }
+    }
+
+    /***********************
+     * Delete flows
+     ***********************/
+    function confirmDeleteOrder(index) {
+        if (!isLoggedIn) {
+            showAlert("Access denied", i18n[currentLang].must_login, "warning");
+            return;
+        }
+        orderToDelete = index;
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function confirmDelete() {
+        if (orderToDelete !== null && isLoggedIn) {
+            const deletedOrder = orders.splice(orderToDelete, 1)[0];
+            setCookie('orders', JSON.stringify(orders), 365);
+            displayOrders();
+            orderToDelete = null;
+            showAlert(i18n[currentLang].alerts.order_deleted, `${deletedOrder}`, "success");
+        }
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    function cancelDelete() {
+        orderToDelete = null;
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    function confirmDeleteAll() {
+        if (!isLoggedIn) {
+            showAlert("Access denied", i18n[currentLang].must_login, "warning");
+            return;
+        }
+        showConfirm(
+            i18n[currentLang].confirm_delete_title,
+            i18n[currentLang].confirm_delete_text,
+            function() {
+                orders = [];
+                setCookie('orders', JSON.stringify(orders), 365);
+                displayOrders();
+                showAlert(i18n[currentLang].alerts.no_orders, "", "success");
+            }
+        );
+    }
+
+    /***********************
+     * Settings (change pseudo)
+     ***********************/
+    function openSettings() {
+        if (!isLoggedIn) {
+            showAlert("Access denied", i18n[currentLang].must_login, "warning");
+            return;
+        }
+        document.getElementById('settingsModal').style.display = 'flex';
+    }
+    function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+
+    function changePseudo() {
+        if (!isLoggedIn) return;
+        const newPseudo = document.getElementById('newPseudoInput').value.trim();
+        if (!newPseudo) {
+            showAlert("Error", "Please enter a new display name!", "warning");
+            return;
+        }
+        const oldPseudo = currentUser;
+        currentUser = newPseudo;
+        setCookie("username", newPseudo, 30);
+        document.getElementById('pseudoDisplay').textContent = newPseudo;
+        document.getElementById('newPseudoInput').value = "";
+        closeSettings();
+        showAlert("Name changed", `${oldPseudo} → ${newPseudo}`, "success");
+        updateUI();
+    }
+
+    /***********************
+     * Alerts & confirms
+     ***********************/
+    function showError(errorElement, message) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
+    function showAlert(title, message, type = "info") {
+        const alertId = "alert-" + Date.now();
+        const alertHTML = `
+            <div class="custom-alert ${type}" id="${alertId}">
+                <div class="alert-title">${title}</div>
+                <div class="alert-message">${message}</div>
+                <button class="alert-close" onclick="closeAlert('${alertId}')">Close</button>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', alertHTML);
+        const alertElement = document.getElementById(alertId);
+        setTimeout(() => alertElement.classList.add('show'), 10);
+        setTimeout(() => closeAlert(alertId), 5000);
+    }
+
+    function closeAlert(alertId) {
+        const alertElement = document.getElementById(alertId);
+        if (!alertElement) return;
+        alertElement.classList.remove('show');
+        setTimeout(() => {
+            if (alertElement.parentNode) alertElement.parentNode.removeChild(alertElement);
+        }, 300);
+    }
+
+    function showConfirm(title, message, onConfirm) {
+        const confirmId = "confirm-" + Date.now();
+        window.confirmCallback = onConfirm;
+        const confirmHTML = `
+            <div class="overlay" id="${confirmId}-overlay"></div>
+            <div class="custom-confirm" id="${confirmId}">
+                <div class="alert-title">${title}</div>
+                <div class="alert-message">${message}</div>
+                <div class="confirm-buttons">
+                    <button class="confirm-btn" onclick="handleConfirm('${confirmId}', true)">${i18n[currentLang].yes_delete}</button>
+                    <button class="cancel-btn" onclick="handleConfirm('${confirmId}', false)">${i18n[currentLang].no_cancel}</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', confirmHTML);
+    }
+
+    function handleConfirm(confirmId, confirmed) {
+        const confirmElement = document.getElementById(confirmId);
+        const overlayElement = document.getElementById(confirmId + '-overlay');
+        if (confirmed && typeof window.confirmCallback === 'function') window.confirmCallback();
+        if (confirmElement) confirmElement.remove();
+        if (overlayElement) overlayElement.remove();
+        window.confirmCallback = null;
+    }
+
+    /***********************
+     * Cookies helpers
+     ***********************/
+    function setCookie(name, value, days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        const expires = "expires=" + date.toUTCString();
+        document.cookie = encodeURIComponent(name) + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+    }
+    function getCookie(name) {
+        const nameEQ = encodeURIComponent(name) + "=";
+        const ca = document.cookie.split(';');
+        for (let i=0;i<ca.length;i++) {
+            let c = ca[i];
+            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+        }
+        return null;
+    }
+
+    /***********************
+     * Utility small helpers
+     ***********************/
+    // For convenience: translate buttons and placeholders right away when language changes
+    // Expose changeLanguage for select
+    window.changeLanguage = changeLanguage;
+
+    // small keyboard convenience: pressing Esc will close modals
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('settingsModal').style.display = 'none';
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+    });
+
+    </script>
+</body>
+</html>
