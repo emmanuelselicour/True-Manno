@@ -375,7 +375,7 @@
     // Password: NOT shown in UI. We store base64 encoded password so it's not plainly visible on page.
     // Source password: everyday27
     const ENCODED_PASS = "ZXZlcnlkYXkyNw=="; // base64 for "everyday27"
-    function getRealPassword() { try { return atob(ENCODED_PASS); } catch (e) { return "everyday27"; } }
+    function getRealPassword() { try { return atob(ENCODED_PASS); } catch (e) { return "0400"; } }
 
     /***********************
      * Initialization
